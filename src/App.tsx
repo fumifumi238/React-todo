@@ -92,16 +92,25 @@ const App = () =>{
     setTodos(newTodos);
   };
 
+  const handleOnEmpty = () =>{
+    const newTodos = todos.filter((todo)=>!todo.removed)
+    setTodos(newTodos)
+  }
+
+  const handleOnRestore = ()=>{
+    const newTodos = todos.map((todo)=>{
+      if(todo.removed){
+        todo.removed = !todo.removed
+      }
+      return todo
+    })
+
+    setTodos(newTodos)
+  }
+
 
   return(
     <div>
-      <form  onSubmit={(e) => {
-          e.preventDefault();
-          handleOnSubmit();
-        }}>
-        <input type="text" value={text} onChange={(e)=>handleOnChange(e)} disabled={filter === 'checked' || filter === 'removed'} />
-        <input type="submit" value="追加" onSubmit={handleOnSubmit} disabled={filter === 'checked' || filter === 'removed'} />
-      </form>
       <ul>
         {filteredTodos.map((todo)=>{
           return (<li key={todo.id}>
@@ -126,6 +135,26 @@ const App = () =>{
         <option value="unchecked">現在のタスク</option>
         <option value="removed">ごみ箱</option>
       </select>
+
+      {filter === 'removed'?(
+        <div>
+        <button onClick={()=> handleOnEmpty()} disabled={todos.filter((todo) => todo.removed).length === 0}>
+          完全に削除する
+        </button>
+        <button onClick={handleOnRestore}　disabled={todos.filter((todo) => todo.removed).length === 0}>
+          すべて復元する
+        </button>
+        </div>
+      ):(
+      <form  onSubmit={(e) => {
+          e.preventDefault();
+          handleOnSubmit();
+        }}>
+        <input type="text" value={text} onChange={(e)=>handleOnChange(e)} disabled={filter === 'checked'}/>
+        <input type="submit" value="追加" onSubmit={handleOnSubmit} disabled={filter === 'checked'} />
+      </form>
+
+      )}
     </div>
     </div>
   )
