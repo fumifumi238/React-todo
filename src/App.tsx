@@ -1,60 +1,77 @@
-import React,{ useState } from "react"
+import React,{useState} from "react";
+import './index.css';
 
 type Todo = {
   value: string,
-  readonly id: number,
-  checked: boolean,
-  removed: boolean,
+  id: number,
+  delete: boolean,
+  checked: boolean
 }
 
-type Filter = 'all' | 'checked' | 'unchecked' | 'removed'
+type Filter = 'all' | 'checked' | 'delete'
 
-const App = () =>{
+function App(){
+
   const [text,setText] = useState("")
   const [todos,setTodos] = useState<Todo[]>([])
+  const [id,setId] = useState<number>(1)
+  const [filter,setFilter] = useState<Filter>("all")
+  let btn;
 
-  const [filter,setFilter] = useState<Filter>('all')
-
-  const filteredTodos = todos.filter((todo)=>{
+  const filterTodos = todos.filter((todo)=>{
     switch(filter){
       case 'all':
-        return !todo.removed
+        return !todo.delete
       case 'checked':
-        return todo.checked && !todo.removed
-      case 'unchecked':
-        return !todo.checked && !todo.removed
-      case 'removed':
-        return todo.removed
+        return todo.checked && !todo.delete
+      case 'delete':
+        return todo.delete
       default:
         return todo
     }
   })
 
-  const handleOnSubmit = () => {
-    if(!text) return
+  const setInputValue = (e: React.ChangeEvent<HTMLInputElement>) =>{
+    setText(e.target.value)
+    console.log(text)
+  }
+
+  const addTodos = () =>{
+    if(!text){
+      return
+    }
 
     const newTodo: Todo = {
       value: text,
-      id: new Date().getTime(),
-      checked: false,
-      removed: false,
+      id: id,
+      delete: false,
+      checked: false
     }
 
     setTodos([newTodo,...todos])
+    setId(id + 1)
     setText('')
 
     console.log(todos)
   }
 
-  const handleOnChange = (e: React.ChangeEvent<HTMLInputElement>) =>{
-    setText(e.target.value)
+  const handleOnRestore = ()=>{
+      const deepCopy: Todo[] = JSON.parse(JSON.stringify(todos))
+      const newTodos = deepCopy.map((todo)=>{
+        if(todo.delete){
+          todo.delete = false;
+        }
+
+        return todo
+      })
+
+      setTodos(newTodos)
   }
 
-  const handleOnEdit = (id:number,value:string) =>{
+  const handleOnEdit = (id:number,value: string) =>{
+    const deepCopy: Todo[] = JSON.parse(JSON.stringify(todos))
+    const newTodos = deepCopy.map((todo) =>{
 
-    const deepCopy: Todo[] = JSON.parse(JSON.stringify(todos));
-
-    const newTodos = deepCopy.map((todo)=>{
       if(todo.id === id){
         todo.value = value
       }
@@ -62,45 +79,14 @@ const App = () =>{
       return todo
     })
 
-     setTodos(newTodos);
+    setTodos(newTodos)
   }
 
-  const handleOnCheck = (id:number,checked:boolean) =>{
-    const deepCopy: Todo[] = JSON.parse(JSON.stringify(todos))
-
+  const handleOnDelete = (id: number) =>{
+    const deepCopy: Todo[] = JSON.parse(JSON.stringify(todos));
     const newTodos = deepCopy.map((todo)=>{
       if(todo.id === id){
-        todo.checked = !checked
-      }
-
-      return todo
-    })
-
-     setTodos(newTodos);
-  }
-
-    const handleOnRemove = (id: number, removed: boolean) => {
-    const deepCopy: Todo[] = JSON.parse(JSON.stringify(todos));
-
-    const newTodos = deepCopy.map((todo) => {
-      if (todo.id === id) {
-        todo.removed = !removed;
-      }
-      return todo;
-    });
-
-    setTodos(newTodos);
-  };
-
-  const handleOnEmpty = () =>{
-    const newTodos = todos.filter((todo)=>!todo.removed)
-    setTodos(newTodos)
-  }
-
-  const handleOnRestore = ()=>{
-    const newTodos = todos.map((todo)=>{
-      if(todo.removed){
-        todo.removed = !todo.removed
+        todo.delete = !todo.delete
       }
       return todo
     })
@@ -108,54 +94,61 @@ const App = () =>{
     setTodos(newTodos)
   }
 
+  const deleteCompletely = () =>{
+    let check = window.confirm("本当に削除しますか?")
+    if(!check){
+      return 
+    }
+    const deepCopy: Todo[] = JSON.parse(JSON.stringify(todos))
+    const newTodos =  deepCopy.filter((todo)=>!todo.delete)
 
-  return(
+    setTodos(newTodos)
+  }
+  const handleOnChecked = (id:number) =>{
+    const deepCopy: Todo[] = JSON.parse(JSON.stringify(todos))
+    const newTodos = deepCopy.map((todo)=>{
+      if(todo.id === id){
+        todo.checked = !todo.checked
+      }
+      return todo
+    })
+
+    setTodos(newTodos)
+  }
+
+  if(todos.filter((todo)=>todo.delete).length === 0 && filter === 'delete'){
+    btn = <p>ゴミ箱は空です</p>
+  }else if(filter === 'delete'){
+    btn = <>
+    <button　onClick={handleOnRestore}>すべて復元する</button>
+    <button　onClick={deleteCompletely}>完全に削除する</button>
+    </>
+  }
+
+
+  return (
     <div>
-      <ul>
-        {filteredTodos.map((todo)=>{
-          return (<li key={todo.id}>
-            <input type="checkbox" disabled={todo.removed} checked={todo.checked} onChange={(e)=> handleOnCheck(todo.id,todo.checked)}/>
-                         <input
-                type="text"
-                value={todo.value}
-                disabled={todo.checked || todo.removed}
-                onChange={(e) => handleOnEdit(todo.id,e.target.value)}
-              />
-                 <button onClick={() => handleOnRemove(todo.id, todo.removed)}>
-      {todo.removed ? '復元' : '削除'}
-    </button>
-          </li>)
-        })}
-      </ul>
-
-            <div>
-      <select defaultValue="all" onChange={(e) => setFilter(e.target.value as Filter)}>
-        <option value="all">すべてのタスク</option>
-        <option value="checked">完了したタスク</option>
-        <option value="unchecked">現在のタスク</option>
-        <option value="removed">ごみ箱</option>
-      </select>
-
-      {filter === 'removed'?(
-        <div>
-        <button onClick={()=> handleOnEmpty()} disabled={todos.filter((todo) => todo.removed).length === 0}>
-          完全に削除する
-        </button>
-        <button onClick={handleOnRestore}　disabled={todos.filter((todo) => todo.removed).length === 0}>
-          すべて復元する
-        </button>
-        </div>
-      ):(
-      <form  onSubmit={(e) => {
-          e.preventDefault();
-          handleOnSubmit();
-        }}>
-        <input type="text" value={text} onChange={(e)=>handleOnChange(e)} disabled={filter === 'checked'}/>
-        <input type="submit" value="追加" onSubmit={handleOnSubmit} disabled={filter === 'checked'} />
+      <form onSubmit={e => {e.preventDefault(); addTodos();}}>
+      <input type="text" value={text} onChange={(e)=>setInputValue(e)}/>
+      <input onSubmit={addTodos} type="submit" value="追加"/>
       </form>
-
-      )}
-    </div>
+      <select defaultValue="all" onChange={e=>setFilter(e.target.value as Filter)}>
+        <option value="all">すべてのタスク</option>
+        <option value="checked">チェックしたタスク</option>
+        <option value="delete">削除したタスク</option>
+      </select>
+      <ul>
+      {filterTodos.map((todo)=>{
+        return(
+          <li key={todo.id}>{todo.id}:
+          <input type="checkbox" checked={todo.checked} onChange={(e)=>handleOnChecked(todo.id)}/>
+            <input type="text" value={todo.value} onChange={(e)=>handleOnEdit(todo.id,e.target.value)} disabled={todo.checked}/>
+            <button onClick={() => handleOnDelete(todo.id)}>{todo.delete?'復元':'削除'}</button>
+          </li>
+        )
+      })}
+      </ul>
+      {btn}
     </div>
   )
 }
